@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hippocratic Humors Interactive Simulator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts: Cinzel & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['Cinzel', 'serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        sanguine: { DEFAULT: '#e11d48', light: '#fda4af', dark: '#881337' },
+                        choleric: { DEFAULT: '#d97706', light: '#fde68a', dark: '#78350f' },
+                        melancholic: { DEFAULT: '#475569', light: '#cbd5e1', dark: '#0f172a' },
+                        phlegmatic: { DEFAULT: '#0284c7', light: '#bae6fd', dark: '#0369a1' },
+                        parchment: { 50: '#fdfbf7', 100: '#f7f2e8', 800: '#2b261f', 900: '#1a1713' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 22px;
+            width: 22px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5), 0 0 0 3px currentColor;
+            margin-top: -8px;
+            transition: transform 0.1s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.4);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.7);
+        }
+        .parchment-border {
+            border: 1px solid rgba(217, 119, 6, 0.25);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+        }
+        .glow-pulse {
+            animation: pulseGlow 2s infinite alternate;
+        }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 5px currentColor; }
+            100% { box-shadow: 0 0 18px currentColor; }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans bg-slate-950 text-slate-200 antialiased selection:bg-amber-500 selection:text-slate-950">
+
+    <header class="bg-slate-900/90 border-b border-amber-900/40 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-amber-100 shadow-md ring-2 ring-amber-500/30">
+                    <i class="fa-solid fa-staff-snake text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-serif text-xl sm:text-2xl font-bold tracking-wide text-amber-100">Humoral Pathophysiology</h1>
+                    <p class="text-xs text-amber-400/80 font-medium">Hippocratic Medicine & Temperament Simulator</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Actions -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button id="btn-case-modal" class="px-3.5 py-1.5 rounded-lg bg-amber-950/80 hover:bg-amber-900 text-amber-200 border border-amber-700/50 text-xs sm:text-sm font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-user text-amber-400"></i>
+                    <span>Patient Cases</span>
+                </button>
+                <button id="btn-reset-eukrasia" class="px-3.5 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/50 text-xs sm:text-sm font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-scale-balanced text-emerald-400"></i>
+                    <span>Restore Eukrasia</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT COLUMN: Slider Controls & Presets (5 Cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- Sliders Card -->
+            <div class="bg-slate-900/80 rounded-2xl p-5 sm:p-6 border border-slate-800 shadow-xl parchment-border relative overflow-hidden">
+                <div class="flex justify-between items-center mb-5 pb-3 border-b border-slate-800">
+                    <h2 class="font-serif text-lg font-bold text-amber-200 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-amber-500"></i>
+                        Humoral Levels (0 - 100)
+                    </h2>
+                    <span id="overall-status-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Eukrasia (Balanced)
+                    </span>
+                </div>
+
+                <div class="space-y-6">
+
+                    <!-- 1. BLOOD (Sanguine) -->
+                    <div class="group bg-slate-950/50 p-3.5 rounded-xl border border-rose-950/50 hover:border-rose-800/60 transition">
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="slider-blood" class="flex items-center gap-2 font-serif text-sm font-bold text-rose-300">
+                                <span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+                                Blood <span class="text-xs font-sans text-rose-400/70 font-normal">(Sanguis)</span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400">Air / Hot & Moist</span>
+                                <span id="val-blood" class="font-mono text-sm font-bold text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800/40">50</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-blood" min="0" max="100" value="50" class="text-rose-500" style="accent-color: #e11d48;">
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                            <span>Deficient</span>
+                            <span>Normal (50)</span>
+                            <span>Excessive</span>
+                        </div>
+                    </div>
+
+                    <!-- 2. YELLOW BILE (Choleric) -->
+                    <div class="group bg-slate-950/50 p-3.5 rounded-xl border border-amber-950/50 hover:border-amber-800/60 transition">
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="slider-yellow-bile" class="flex items-center gap-2 font-serif text-sm font-bold text-amber-300">
+                                <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+                                Yellow Bile <span class="text-xs font-sans text-amber-400/70 font-normal">(Chole)</span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400">Fire / Hot & Dry</span>
+                                <span id="val-yellow-bile" class="font-mono text-sm font-bold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800/40">50</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-yellow-bile" min="0" max="100" value="50" class="text-amber-500" style="accent-color: #d97706;">
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                            <span>Deficient</span>
+                            <span>Normal (50)</span>
+                            <span>Excessive</span>
+                        </div>
+                    </div>
+
+                    <!-- 3. BLACK BILE (Melancholic) -->
+                    <div class="group bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/80 hover:border-slate-700 transition">
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="slider-black-bile" class="flex items-center gap-2 font-serif text-sm font-bold text-slate-300">
+                                <span class="w-3 h-3 rounded-full bg-slate-400 inline-block"></span>
+                                Black Bile <span class="text-xs font-sans text-slate-400/70 font-normal">(Melanchole)</span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400">Earth / Cold & Dry</span>
+                                <span id="val-black-bile" class="font-mono text-sm font-bold text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-700/60">50</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-black-bile" min="0" max="100" value="50" class="text-slate-400" style="accent-color: #94a3b8;">
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                            <span>Deficient</span>
+                            <span>Normal (50)</span>
+                            <span>Excessive</span>
+                        </div>
+                    </div>
+
+                    <!-- 4. PHLEGM (Phlegmatic) -->
+                    <div class="group bg-slate-950/50 p-3.5 rounded-xl border border-sky-950/50 hover:border-sky-800/60 transition">
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="slider-phlegm" class="flex items-center gap-2 font-serif text-sm font-bold text-sky-300">
+                                <span class="w-3 h-3 rounded-full bg-sky-500 inline-block"></span>
+                                Phlegm <span class="text-xs font-sans text-sky-400/70 font-normal">(Phlegma)</span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400">Water / Cold & Moist</span>
+                                <span id="val-phlegm" class="font-mono text-sm font-bold text-sky-400 bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800/40">50</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-phlegm" min="0" max="100" value="50" class="text-sky-500" style="accent-color: #0284c7;">
+                        <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                            <span>Deficient</span>
+                            <span>Normal (50)</span>
+                            <span>Excessive</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Preset Archetypes Card -->
+            <div class="bg-slate-900/80 rounded-2xl p-5 border border-slate-800 shadow-xl parchment-border">
+                <h3 class="font-serif text-sm font-bold text-amber-200/90 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-flask text-amber-500"></i>
+                    Classical Clinical States & Presets
+                </h3>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button class="btn-preset p-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/50 border border-rose-800/40 text-left transition group" data-blood="90" data-yellow="40" data-black="25" data-phlegm="30">
+                        <div class="text-xs font-bold text-rose-300 group-hover:text-rose-200">Sanguine Fever</div>
+                        <div class="text-[10px] text-rose-400/70">Overabundance of Blood</div>
+                    </button>
+
+                    <button class="btn-preset p-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/50 border border-amber-800/40 text-left transition group" data-blood="35" data-yellow="95" data-black="30" data-phlegm="20">
+                        <div class="text-xs font-bold text-amber-300 group-hover:text-amber-200">Choleric Fury</div>
+                        <div class="text-[10px] text-amber-400/70">Yellow Bile Crisis</div>
+                    </button>
+
+                    <button class="btn-preset p-2.5 rounded-xl bg-slate-800/40 hover:bg-slate-800/70 border border-slate-700/50 text-left transition group" data-blood="20" data-yellow="25" data-black="95" data-phlegm="40">
+                        <div class="text-xs font-bold text-slate-300 group-hover:text-slate-200">Melancholic Stupor</div>
+                        <div class="text-[10px] text-slate-400/70">Black Bile Dominance</div>
+                    </button>
+
+                    <button class="btn-preset p-2.5 rounded-xl bg-sky-950/40 hover:bg-sky-900/50 border border-sky-800/40 text-left transition group" data-blood="25" data-yellow="20" data-black="35" data-phlegm="90">
+                        <div class="text-xs font-bold text-sky-300 group-hover:text-sky-200">Phlegmatic Lethargy</div>
+                        <div class="text-[10px] text-sky-400/70">Excess Mucus/Cooling</div>
+                    </button>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT COLUMN: Visualizer & Diagnostics (7 Cols) -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+
+            <div class="bg-slate-900/80 rounded-2xl p-5 sm:p-6 border border-slate-800 shadow-xl parchment-border">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-serif text-lg font-bold text-amber-200 flex items-center gap-2">
+                        <i class="fa-solid fa-compass text-amber-500"></i>
+                        Qualitative Matrix (Temperature vs Moisture)
+                    </h2>
+                    <span id="matrix-coord" class="text-xs font-mono text-slate-400">Axis: Neutral</span>
+                </div>
+
+                <!-- 2D Matrix Grid Canvas Container -->
+                <div class="relative w-full aspect-[16/10] sm:aspect-[2/1] bg-slate-950 rounded-xl border border-slate-800 overflow-hidden flex items-center justify-center p-4">
+                    
+                    <!-- Background Quadrant Grid Lines -->
+                    <div class="absolute inset-0 grid grid-cols-2 grid-rows-2 opacity-20 pointer-events-none">
+                        <div class="border-r border-b border-rose-500 bg-rose-500/5"></div>
+                        <div class="border-b border-amber-500 bg-amber-500/5"></div>
+                        <div class="border-r border-sky-500 bg-sky-500/5"></div>
+                        <div class="border-slate-500 bg-slate-500/5"></div>
+                    </div>
+
+                    <!-- Quadrant Labels -->
+                    <div class="absolute top-2 left-3 text-[11px] font-serif font-bold text-rose-400/80 flex items-center gap-1">
+                        <i class="fa-solid fa-wind"></i> SANGUINE (Hot & Wet)
+                    </div>
+                    <div class="absolute top-2 right-3 text-[11px] font-serif font-bold text-amber-400/80 flex items-center gap-1">
+                        <i class="fa-solid fa-fire"></i> CHOLERIC (Hot & Dry)
+                    </div>
+                    <div class="absolute bottom-2 left-3 text-[11px] font-serif font-bold text-sky-400/80 flex items-center gap-1">
+                        <i class="fa-solid fa-droplet"></i> PHLEGMATIC (Cold & Wet)
+                    </div>
+                    <div class="absolute bottom-2 right-3 text-[11px] font-serif font-bold text-slate-400/80 flex items-center gap-1">
+                        <i class="fa-solid fa-mountain"></i> MELANCHOLIC (Cold & Dry)
+                    </div>
+
+                    <!-- Axis Crosshair Labels -->
+                    <span class="absolute top-1 text-[10px] uppercase font-bold tracking-widest text-rose-400/60 bg-slate-900/80 px-2 py-0.5 rounded">HOT (+Temp)</span>
+                    <span class="absolute bottom-1 text-[10px] uppercase font-bold tracking-widest text-sky-400/60 bg-slate-900/80 px-2 py-0.5 rounded">COLD (-Temp)</span>
+                    <span class="absolute left-1 text-[10px] uppercase font-bold tracking-widest text-sky-300/60 bg-slate-900/80 px-1 py-2 rounded [writing-mode:vertical-lr] rotate-180">MOIST (+Moist)</span>
+                    <span class="absolute right-1 text-[10px] uppercase font-bold tracking-widest text-amber-300/60 bg-slate-900/80 px-1 py-2 rounded [writing-mode:vertical-lr]">DRY (-Moist)</span>
+
+                    <!-- Target Point Marker -->
+                    <div id="matrix-dot" class="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-2xl transition-all duration-300 ease-out flex items-center justify-center glow-pulse" style="left: 50%; top: 50%; background-color: #f59e0b;">
+                        <div class="w-2 h-2 rounded-full bg-white"></div>
+                    </div>
+                </div>
+
+                <!-- Proportion Bar -->
+                <div class="mt-4 pt-3 border-t border-slate-800">
+                    <div class="flex justify-between text-xs text-slate-400 mb-1.5 font-medium">
+                        <span>Humoral Distribution Ratio</span>
+                        <span id="proportion-summary">Balanced (25% each)</span>
+                    </div>
+                    <div class="h-3 w-full bg-slate-950 rounded-full overflow-hidden flex shadow-inner border border-slate-800/80">
+                        <div id="bar-blood" class="bg-rose-500 h-full transition-all duration-300" style="width: 25%" title="Blood"></div>
+                        <div id="bar-yellow" class="bg-amber-500 h-full transition-all duration-300" style="width: 25%" title="Yellow Bile"></div>
+                        <div id="bar-black" class="bg-slate-400 h-full transition-all duration-300" style="width: 25%" title="Black Bile"></div>
+                        <div id="bar-phlegm" class="bg-sky-500 h-full transition-all duration-300" style="width: 25%" title="Phlegm"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/80 rounded-2xl border border-slate-800 shadow-xl parchment-border overflow-hidden flex flex-col flex-1">
+                
+                <!-- Tab Controls -->
+                <div class="flex border-b border-slate-800 bg-slate-950/60 p-1 gap-1">
+                    <button class="tab-btn active flex-1 py-2.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 text-amber-200 bg-amber-950/60 border border-amber-800/40" data-tab="tab-personality">
+                        <i class="fa-solid fa-brain text-amber-400"></i>
+                        <span>Personality & Mind</span>
+                    </button>
+                    <button class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50" data-tab="tab-physical">
+                        <i class="fa-solid fa-heart-pulse text-rose-400"></i>
+                        <span>Physical Symptoms</span>
+                    </button>
+                    <button class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50" data-tab="tab-treatments">
+                        <i class="fa-solid fa-mortar-pestle text-emerald-400"></i>
+                        <span>Ancient Treatments</span>
+                    </button>
+                </div>
+
+                <!-- Tab Content Containers -->
+                <div class="p-5 sm:p-6 flex-1 bg-slate-900/40">
+
+                    <!-- TAB 1: PERSONALITY & TEMPERAMENT -->
+                    <div id="tab-personality" class="tab-content space-y-4">
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
+                            <div>
+                                <span class="text-[10px] uppercase tracking-wider font-bold text-amber-400/80">Dominant Temperament</span>
+                                <h3 id="diag-temperament-title" class="font-serif text-xl font-bold text-amber-100">Eukrasia (Harmonious Balance)</h3>
+                            </div>
+                            <div id="diag-element-badge" class="text-xs px-3 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30 font-medium">
+                                Elements: Air, Fire, Earth, Water
+                            </div>
+                        </div>
+
+                        <p id="diag-temperament-desc" class="text-sm text-slate-300 leading-relaxed">
+                            The four humors are in complete equilibrium (Eukrasia). The individual exhibits mental clarity, emotional resilience, physical vigor, and a well-adjusted disposition.
+                        </p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold uppercase tracking-wide text-emerald-400 mb-2 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-plus-circle"></i> Dominant Psychological Strengths
+                                </h4>
+                                <ul id="list-strengths" class="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+                                    <li>Balanced cognition and emotional stability</li>
+                                    <li>Adaptable social intelligence</li>
+                                    <li>Steady drive without volatility</li>
+                                </ul>
+                            </div>
+
+                            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                                <h4 class="text-xs font-bold uppercase tracking-wide text-rose-400 mb-2 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Potential Behavioral Risks
+                                </h4>
+                                <ul id="list-vulnerabilities" class="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+                                    <li>Minimal risks when in perfect balance</li>
+                                    <li>Susceptible to environmental shifts if diet strays</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: PHYSICAL SYMPTOMS -->
+                    <div id="tab-physical" class="tab-content hidden space-y-4">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
+                                <span class="text-[10px] text-slate-400 block uppercase">Internal Heat</span>
+                                <span id="metric-temp" class="text-sm font-bold font-mono text-amber-300">Normothermic</span>
+                            </div>
+                            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
+                                <span class="text-[10px] text-slate-400 block uppercase">Moisture Level</span>
+                                <span id="metric-moist" class="text-sm font-bold font-mono text-sky-300">Balanced</span>
+                            </div>
+                            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
+                                <span class="text-[10px] text-slate-400 block uppercase">Pulse Character</span>
+                                <span id="metric-pulse" class="text-sm font-bold font-mono text-rose-300">Rhythmic & Steady</span>
+                            </div>
+                            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center">
+                                <span class="text-[10px] text-slate-400 block uppercase">Complexion Tone</span>
+                                <span id="metric-skin" class="text-sm font-bold font-mono text-emerald-300">Healthy Rosy</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                            <h4 class="text-xs font-bold text-amber-200 mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-stethoscope text-amber-400"></i>
+                                Observable Bodily Manifestations
+                            </h4>
+                            <div id="container-symptoms" class="space-y-2 text-xs text-slate-300">
+                                <!-- Dynamic symptoms generated via JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: ANCIENT TREATMENTS -->
+                    <div id="tab-treatments" class="tab-content hidden space-y-4">
+                        <div class="p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/40 text-xs text-amber-200/90 leading-relaxed flex items-start gap-3">
+                            <i class="fa-solid fa-scroll text-lg text-amber-400 mt-0.5"></i>
+                            <div>
+                                <strong class="font-serif">Hippocratic Principle of Contraries (Contraria Contrariis Curantur):</strong>
+                                Diseases caused by excess heat or moisture are treated with opposite dietetics, herbal purges, or surgical evacuation to restore natural equilibrium.
+                            </div>
+                        </div>
+
+                        <div id="container-remedies" class="space-y-3">
+                            <!-- Dynamic treatment cards with action buttons -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <div id="modal-patient-cases" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-amber-800/60 rounded-2xl max-w-2xl w-full p-6 shadow-2xl parchment-border max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+                <h3 class="font-serif text-xl font-bold text-amber-200 flex items-center gap-2">
+                    <i class="fa-solid fa-user-doctor text-amber-500"></i>
+                    Hippocratic Clinic: Patient Case Files
+                </h3>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="py-4 space-y-4 overflow-y-auto flex-1 text-xs">
+                
+                <!-- Case 1 -->
+                <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-serif font-bold text-amber-300 text-sm">Case I: Senator Marcus of Athens</span>
+                        <span class="text-[10px] bg-rose-950 text-rose-300 px-2 py-0.5 rounded border border-rose-800/40">Acute Crisis</span>
+                    </div>
+                    <p class="text-slate-300">
+                        Presenting with intense rage, a red burning face, violent headache, and bitter taste in the mouth after a heavy feast in midsummer.
+                    </p>
+                    <button class="btn-load-case px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-lg transition" data-blood="75" data-yellow="90" data-black="20" data-phlegm="15">
+                        Load Case to Examination Table
+                    </button>
+                </div>
+
+                <!-- Case 2 -->
+                <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-serif font-bold text-amber-300 text-sm">Case II: Lysandra the Scribe</span>
+                        <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">Chronic Malady</span>
+                    </div>
+                    <p class="text-slate-300">
+                        Exhibits deep melancholia, cold hands, dark eye rings, digestive discomfort, and refusal to sleep or speak during autumn.
+                    </p>
+                    <button class="btn-load-case px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-lg transition" data-blood="15" data-yellow="20" data-black="92" data-phlegm="35">
+                        Load Case to Examination Table
+                    </button>
+                </div>
+
+                <!-- Case 3 -->
+                <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-serif font-bold text-amber-300 text-sm">Case III: Captain Theron of Corinth</span>
+                        <span class="text-[10px] bg-sky-950 text-sky-300 px-2 py-0.5 rounded border border-sky-800/40">Winter Affliction</span>
+                    </div>
+                    <p class="text-slate-300">
+                        Complains of heavy phlegm in lungs, swelling in ankles (dropsy), severe drowsiness, apathy, and cold clammy skin.
+                    </p>
+                    <button class="btn-load-case px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-lg transition" data-blood="20" data-yellow="15" data-black="30" data-phlegm="95">
+                        Load Case to Examination Table
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-slate-950 border-t border-slate-900 py-4 px-6 text-center text-xs text-slate-500">
+        <p>Interactive Educational Simulation based on Hippocratic & Galenic Humoral Pathophysiology (ca. 400 B.C. - 200 A.D.)</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            /* STATE MANAGEMENT */
+            const state = {
+                blood: 50,
+                yellowBile: 50,
+                blackBile: 50,
+                phlegm: 50
+            };
+
+            /* DOM ELEMENTS */
+            const sliders = {
+                blood: document.getElementById('slider-blood'),
+                yellowBile: document.getElementById('slider-yellow-bile'),
+                blackBile: document.getElementById('slider-black-bile'),
+                phlegm: document.getElementById('slider-phlegm')
+            };
+
+            const values = {
+                blood: document.getElementById('val-blood'),
+                yellowBile: document.getElementById('val-yellow-bile'),
+                blackBile: document.getElementById('val-black-bile'),
+                phlegm: document.getElementById('val-phlegm')
+            };
+
+            const matrixDot = document.getElementById('matrix-dot');
+            const matrixCoord = document.getElementById('matrix-coord');
+            const overallStatusBadge = document.getElementById('overall-status-badge');
+            const proportionSummary = document.getElementById('proportion-summary');
+
+            const bars = {
+                blood: document.getElementById('bar-blood'),
+                yellow: document.getElementById('bar-yellow'),
+                black: document.getElementById('bar-black'),
+                phlegm: document.getElementById('bar-phlegm')
+            };
+
+            function calculateHumoralMetrics() {
+                const b = state.blood;
+                const y = state.yellowBile;
+                const k = state.blackBile;
+                const p = state.phlegm;
+
+                const total = b + y + k + p || 1;
+
+                // Calculate Net Qualitative Coordinates
+                // Temperature: Hot (Blood, Yellow Bile) vs Cold (Black Bile, Phlegm)
+                // Range: -100 to +100
+                const temp = ((b + y) - (k + p)) / Math.max(total, 1) * 100;
+
+                // Moisture: Moist (Blood, Phlegm) vs Dry (Yellow Bile, Black Bile)
+                // Range: -100 to +100
+                const moist = ((b + p) - (y + k)) / Math.max(total, 1) * 100;
+
+                return {
+                    total,
+                    temp,
+                    moist,
+                    bPct: Math.round((b / total) * 100),
+                    yPct: Math.round((y / total) * 100),
+                    kPct: Math.round((k / total) * 100),
+                    pPct: Math.round((p / total) * 100)
+                };
+            }
+
+            function updateUI() {
+                const metrics = calculateHumoralMetrics();
+
+                // Update text values
+                values.blood.textContent = state.blood;
+                values.yellowBile.textContent = state.yellowBile;
+                values.blackBile.textContent = state.blackBile;
+                values.phlegm.textContent = state.phlegm;
+
+                // Update percentage distribution bars
+                bars.blood.style.width = `${metrics.bPct}%`;
+                bars.yellow.style.width = `${metrics.yPct}%`;
+                bars.black.style.width = `${metrics.kPct}%`;
+                bars.phlegm.style.width = `${metrics.pPct}%`;
+
+                proportionSummary.textContent = `B:${metrics.bPct}% | Y:${metrics.yPct}% | K:${metrics.kPct}% | P:${metrics.pPct}%`;
+
+                // Update Matrix Marker Position (0% to 100%)
+                // X Axis: Dry (-100) to Moist (+100) -> 0% to 100% left
+                // Y Axis: Hot (+100) to Cold (-100) -> 0% to 100% top
+                const posX = 50 + (metrics.moist * 0.45);
+                const posY = 50 - (metrics.temp * 0.45);
+
+                matrixDot.style.left = `${Math.max(5, Math.min(95, posX))}%`;
+                matrixDot.style.top = `${Math.max(5, Math.min(95, posY))}%`;
+
+                // Determine dominant humor
+                const maxVal = Math.max(state.blood, state.yellowBile, state.blackBile, state.phlegm);
+                const minVal = Math.min(state.blood, state.yellowBile, state.blackBile, state.phlegm);
+                const spread = maxVal - minVal;
+
+                // Set Dot Color based on dominant
+                if (spread <= 15) {
+                    matrixDot.style.backgroundColor = '#10b981'; // Emerald Eukrasia
+                    matrixCoord.textContent = 'Eukrasia (Centered Balance)';
+                    overallStatusBadge.textContent = 'Eukrasia (Balanced)';
+                    overallStatusBadge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                } else {
+                    overallStatusBadge.textContent = 'Dyskrasia (Imbalanced)';
+                    overallStatusBadge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20';
+
+                    if (maxVal === state.blood) matrixDot.style.backgroundColor = '#e11d48';
+                    else if (maxVal === state.yellowBile) matrixDot.style.backgroundColor = '#d97706';
+                    else if (maxVal === state.blackBile) matrixDot.style.backgroundColor = '#94a3b8';
+                    else matrixDot.style.backgroundColor = '#0284c7';
+
+                    matrixCoord.textContent = `Temp: ${metrics.temp > 0 ? '+' : ''}${Math.round(metrics.temp)} | Moist: ${metrics.moist > 0 ? '+' : ''}${Math.round(metrics.moist)}`;
+                }
+
+                // Render tab diagnostics
+                renderDiagnostics(maxVal, spread, metrics);
+            }
+
+            function renderDiagnostics(maxVal, spread, metrics) {
+                const tempTitle = document.getElementById('diag-temperament-title');
+                const tempDesc = document.getElementById('diag-temperament-desc');
+                const elemBadge = document.getElementById('diag-element-badge');
+
+                const listStrengths = document.getElementById('list-strengths');
+                const listVulnerabilities = document.getElementById('list-vulnerabilities');
+
+                const metricTemp = document.getElementById('metric-temp');
+                const metricMoist = document.getElementById('metric-moist');
+                const metricPulse = document.getElementById('metric-pulse');
+                const metricSkin = document.getElementById('metric-skin');
+                const containerSymptoms = document.getElementById('container-symptoms');
+                const containerRemedies = document.getElementById('container-remedies');
+
+                if (spread <= 15) {
+                    // EUKRASIA
+                    tempTitle.textContent = "Eukrasia (Perfect Equilibrium)";
+                    tempDesc.textContent = "All four bodily humors exist in proportionate harmony. Blood, Yellow Bile, Black Bile, and Phlegm nourish the vital organs equally, promoting clear intellect, longevity, and physical vitality.";
+                    elemBadge.textContent = "Primary Quality: Perfect Harmony";
+
+                    listStrengths.innerHTML = `
+                        <li>High emotional resilience & mental clarity</li>
+                        <li>Optimal metabolic vigor & endurance</li>
+                        <li>Balanced social interactions</li>
+                    `;
+                    listVulnerabilities.innerHTML = `
+                        <li>No acute pathology present</li>
+                        <li>Maintain current moderate diet & regimen</li>
+                    `;
+
+                    metricTemp.textContent = "Normothermic";
+                    metricMoist.textContent = "Balanced";
+                    metricPulse.textContent = "Steady (70 bpm)";
+                    metricSkin.textContent = "Healthy Rosy";
+
+                    containerSymptoms.innerHTML = `
+                        <div class="p-2.5 rounded bg-emerald-950/20 border border-emerald-800/30 text-emerald-300">
+                            <strong>Status:</strong> Clear respiratory passages, balanced digestion, tranquil mind, and effortless sleep.
+                        </div>
+                    `;
+
+                    containerRemedies.innerHTML = `
+                        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 text-center">
+                            <i class="fa-solid fa-circle-check text-emerald-400 text-base mb-1 block"></i>
+                            No evacuation or aggressive interventions needed. Maintain temperate lifestyle and wholesome diet.
+                        </div>
+                    `;
+                    return;
+                }
+
+                // DYSKRASIA - Determine Primary & Secondary
+                let dominant = [];
+                if (state.blood === maxVal) dominant.push('blood');
+                if (state.yellowBile === maxVal) dominant.push('yellow');
+                if (state.blackBile === maxVal) dominant.push('black');
+                if (state.phlegm === maxVal) dominant.push('phlegm');
+
+                const primary = dominant[0];
+
+                if (primary === 'blood') {
+                    tempTitle.textContent = "Sanguine Imbalance (Blood Excess)";
+                    tempDesc.textContent = "Characterized by an overabundance of warm, moist Blood (Sanguis), associated with the heart and spring season. Causes fiery optimism that can tip into impulsive mania, fevers, and vascular congestion.";
+                    elemBadge.textContent = "Element: Air | Warm & Moist";
+
+                    listStrengths.innerHTML = `
+                        <li>High enthusiasm, sociability, and charisma</li>
+                        <li>Extroverted creativity and optimism</li>
+                        <li>Abundant energy and passion</li>
+                    `;
+                    listVulnerabilities.innerHTML = `
+                        <li>Recklessness, hedonism, and impulsivity</li>
+                        <li>Susceptibility to inflammatory fevers & apoplexy</li>
+                        <li>Difficulty maintaining focus under strain</li>
+                    `;
+
+                    metricTemp.textContent = "Elevated (+Heat)";
+                    metricMoist.textContent = "High (+Moisture)";
+                    metricPulse.textContent = "Full & Bounding";
+                    metricSkin.textContent = "Flushed & Ruddy";
+
+                    containerSymptoms.innerHTML = `
+                        <div class="p-2 bg-slate-950 rounded border border-rose-900/40 text-rose-300">
+                            • Frequent nosebleeds (epistaxis) & rapid heart palpitations.
+                        </div>
+                        <div class="p-2 bg-slate-950 rounded border border-rose-900/40 text-rose-300">
+                            • Acute inflammatory fevers, skin rashes, and bloodshot eyes.
+                        </div>
+                        <div class="p-2 bg-slate-950 rounded border border-rose-900/40 text-rose-300">
+                            • Restless laughter, intense dreaming, and erratic mood swings.
+                        </div>
+                    `;
+
+                    containerRemedies.innerHTML = `
+                        <div class="p-3 bg-slate-950 rounded-xl border border-rose-900/50 flex items-center justify-between gap-3">
+                            <div>
+                                <h5 class="font-bold text-rose-300 font-serif">Phlebotomy (Venesection)</h5>
+                                <p class="text-[11px] text-slate-400">Surgically evacuate excess warm blood to cool internal body temperature.</p>
+                            </div>
+                            <button class="btn-apply-remedy shrink-0 px-3 py-1.5 bg-rose-700 hover:bg-rose-600 text-white font-bold rounded-lg" data-target="blood" data-reduce="25">
+                                Bleed Patient (-25 Blood)
+                            </button>
+                        </div>
+                        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                            <div>
+                                <h5 class="font-bold text-amber-300 font-serif">Cooling Cucumber & Lettuce Diet</h5>
+                                <p class="text-[11px] text-slate-400">Administer moistening cold herbs to counteract sanguine heat.</p>
+                            </div>
+                            <button class="btn-apply-remedy shrink-0 px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-white font-bold rounded-lg" data-target="blood" data-reduce="15">
+                                Serve Cooling Diet (-15 Blood)
+                            </button>
+                        </div>
+                    `;
+
+                } else if (primary === 'yellow') {
+                    tempTitle.textContent = "Choleric Imbalance (Yellow Bile Excess)";
+                    tempDesc.textContent = "Excess of hot, dry Yellow Bile (Chole) produced by the liver/gallbladder, linked with summer and fire. Drives ambition and decisive leadership, but in excess leads to rage, jaundice, and violent inflammation.";
+                    elemBadge.textContent = "Element: Fire | Hot & Dry";
+
+                    listStrengths.innerHTML = `
+                        <li>Decisive leadership, courage, and ambition</li>
+                        <li>High productivity and task orientation</li>
+                        <li>Quick analytical comprehension</li>
+                    `;
+                    listVulnerabilities.innerHTML = `
+                        <li>Volatile temper, hostility, and intolerance</li>
+                        <li>Risk of peptic ulcers and hepatic dysfunction</li>
+                        <li>Chronic stress and insomnia</li>
+                    `;
+
+                    metricTemp.textContent = "High (+Heat)";
+                    metricMoist.textContent = "Deficient (-Dry)";
+                    metricPulse.textContent = "Hard & Rapid";
+                    metricSkin.textContent = "Sallow / Jaundiced";
+
+                    containerSymptoms.innerHTML = `
+                        <div class="p-2 bg-slate-950 rounded border border-amber-900/40 text-amber-300">
+                            • Bitter taste in mouth, acute belching, and yellowed sclera.
+                        </div>
+                        <div class="p-2 bg-slate-950 rounded border border-amber-900/40 text-amber-300">
+                            • Burning gastrointestinal pain & bilious vomiting.
+                        </div>
+                        <div class="p-2 bg-slate-950 rounded border border-amber-900/40 text-amber-300">
+                            • Irritability, outbursts of anger, and violent restless sleep.
+                        </div>
+                    `;
+
+                    containerRemedies.innerHTML = `
+                        <div class="p-3 bg-slate-950 rounded-xl border border-amber-900/50 flex items-center justify-between gap-3">
+                            <div>
+                                <h5 class="font-bold text-amber-300 font-serif">Emetic Purge & Barley Water</h5>
+                                <p class="text-[11px] text-slate-400">Induce vomiting to evacuate acrid yellow bile from stomach.</p>
+                            </div>
+                            <button class="btn-apply-remedy shrink-0 px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-white font-bold rounded-lg" data-target="yellowBile" data-reduce="25">
+                                Administer Purge (-25 Yellow Bile)
+                            </button>
+                        </div>
+                        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                            <div>
+                                <h5 class="font-bold text-sky-300 font-serif">Cold Hydrating Hydrotherapy</h5>
+                                <p class="text-[11px] text-slate-400">Cooling baths and melons to restore lost body moisture.</p>
+                            </div>
+                            <button class="btn-apply-remedy shrink-0 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white font-bold rounded-lg" data-target="yellowBile" data-reduce="15">
+                                Cold Bath (-15 Yellow Bile)
+                            </button>
+                        </div>
+                    `;
+
+                } else if (primary === 'black') {
+                    tempTitle.textContent = "Melancholic Imbalance (Black Bile Excess)";
+                    tempDesc.textContent = "Excess of cold, dry Black Bile (Melanchole) secreted by the spleen during autumn. Drives deep introspective art and scholarship, but excess causes chronic depression, dark anxieties, and wasting.";
+                    elemBadge.textContent = "Element: Earth | Cold & Dry";
+
+                    listStrengths.innerHTML = `
+                        <li>Deep contemplative intellect and artistic depth</li>
+                        <li>Meticulous attention to detail and caution</li>
+                        <li>Loyalty and profound self-reflection</li>
+                    `;
+                    listVulnerabilities.innerHTML = `
+                        <li>Severe depression, anxiety, and paranoia</li>
+                        <li>Chronic constipation and sluggish digestion</li>
+                        <li>Social withdrawal and insomnia</li>
+                    `;
+
+                    metricTemp.textContent = "Deficient (-Cold)";
+                    metricMoist.textContent = "Deficient (-Dry)";
+                    metricPulse.textContent = "Slow & Small";
+                    metricSkin.textContent = "Pale / Ashen Gray";
+
+                    containerSymptoms.innerHTML = `
+                        <div class="p-2 bg-slate-950 rounded border border-slate-700 text-slate-300">
+                            • Dark despondency, groundless fears, and fixed obsessions.
+                        </div>
+                        <div class="p-2 bg-slate-950 rounded border border-slate-700 text-slate-300">
+                            • Cold extremities, hard abdominal tumors, and dry skin.
+                        </div>
+                        <div class="p-2 bg-slate-950 rounded border border-slate-700 text-slate-300">
+                            • Disturbed nocturnal visions and loss of appetite.
+                        </div>
+                    `;
+
+                    containerRemedies.innerHTML = `
+                        <div class="p-3 bg-slate-950 rounded-xl border border-slate-700 flex items-center justify-between gap-3">
+                            <div>
+                                <h5 class="font-bold text-slate-200 font-serif">Black Hellebore Infusion</h5>
+                                <p class="text-[11px] text-slate-400">Potent botanical purgative to flush heavy atra-bile from spleen.</p>
+                            </div>
+                            <button class="btn-apply-remedy shrink-0 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg" data-target="blackBile" data-reduce="25">
+                                Administer Hellebore (-25 Black Bile)
+                            </button>
+                        </div>
+                        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                            <div>
+                                <h5 class="font-bold text-amber-300 font-serif">Warming Spiced Wine & Music Therapy</h5>
+                                <p class="text-[11px] text-slate-400">Soothing melodies, figs, and hot spiced wine to cheer the spirit.</p>
+                            </div>
+                            <button class="btn-apply-remedy shrink-0 px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-white font-bold rounded-lg" data-target="blackBile" data-reduce="15">
+                                Spiced Wine (-15 Black Bile)
+                            </button>
+                        </div>
+                    `;
+
+                } else {
+                    // PHLEGM
+                    tempTitle.textContent = "Phlegmatic Imbalance (Phlegm Excess)";
+                    tempDesc.textContent = "Excess of cold, moist Phlegm (Phlegma) associated with the brain, lungs, and winter water. Promotes calm tolerance and patience, but excess leads to apathy, lethargy, dropsy, and respiratory congestion.";
+                    elemBadge.textContent = "Element: Water | Cold & Moist";
+
+                    listStrengths.innerHTML = `
+                        <li>Calm, peaceful, and steady demeanor</li>
+                        <li>High tolerance, patience, and consistency</li>
+                        <li>Empathetic listener and peacemaker</li>
+                    `;
+                    listVulnerabilities.innerHTML = `
+                        <li>Sluggishness, apathy, and procrastination</li>
+                        <li>Chronic bronchitis, edema, and weight gain</li>
+                        <li>Low motivation and resistance to change</li>
+                    `;
+
+                    metricTemp.textContent = "Low (-Cold)";
+                    metricMoist.textContent = "Excess (+Moisture)";
+                    metricPulse.textContent = "Slow & Soft / Undulating";
+                    metricSkin.textContent = "Pale & Clammy";
+
+                    containerSymptoms.innerHTML = `
+                        <div class="p-2 bg-slate-950 rounded border border-sky-900/40 text-sky-300">
+                            • Excessive mucus production, chronic cough, and sinus discharge.
+                        </div>
+                        <div class="p-2 bg-slate-950 rounded border border-sky-900/40 text-sky-300">
+                            • Fluid retention in tissue (edema / dropsy) & swollen joints.
+                        </div>
+                        <div class="p-2 bg-slate-950 rounded border border-sky-900/40 text-sky-300">
+                            • Somnolence (excessive daytime sleepiness) & mental dulness.
+                        </div>
+                    `;
+
+                    containerRemedies.innerHTML = `
+                        <div class="p-3 bg-slate-950 rounded-xl border border-sky-900/50 flex items-center justify-between gap-3">
+                            <div>
+                                <h5 class="font-bold text-sky-300 font-serif">Hot Dry Steam Baths & Sweat Therapy</h5>
+                                <p class="text-[11px] text-slate-400">Evaporate cold watery phlegm through active diaphoretics.</p>
+                            </div>
+                            <button class="btn-apply-remedy shrink-0 px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white font-bold rounded-lg" data-target="phlegm" data-reduce="25">
+                                Steam Treatment (-25 Phlegm)
+                            </button>
+                        </div>
+                        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                            <div>
+                                <h5 class="font-bold text-amber-300 font-serif">Pungent Mustard & Ginger Regimen</h5>
+                                <p class="text-[11px] text-slate-400">Heating spices to ignite sluggish digestive fire.</p>
+                            </div>
+                            <button class="btn-apply-remedy shrink-0 px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-white font-bold rounded-lg" data-target="phlegm" data-reduce="15">
+                                Administer Mustard (-15 Phlegm)
+                            </button>
+                        </div>
+                    `;
+                }
+
+                // Attach event listeners to remedy buttons dynamically
+                document.querySelectorAll('.btn-apply-remedy').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const target = e.currentTarget.dataset.target;
+                        const reduce = parseInt(e.currentTarget.dataset.reduce, 10);
+                        state[target] = Math.max(10, state[target] - reduce);
+                        sliders[target].value = state[target];
+                        updateUI();
+                    });
+                });
+            }
+
+            /* EVENT LISTENERS FOR SLIDERS */
+            Object.keys(sliders).forEach(key => {
+                sliders[key].addEventListener('input', (e) => {
+                    state[key] = parseInt(e.target.value, 10);
+                    updateUI();
+                });
+            });
+
+            /* PRESETS */
+            document.querySelectorAll('.btn-preset').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.blood = parseInt(btn.dataset.blood, 10);
+                    state.yellowBile = parseInt(btn.dataset.yellow, 10);
+                    state.blackBile = parseInt(btn.dataset.black, 10);
+                    state.phlegm = parseInt(btn.dataset.phlegm, 10);
+
+                    sliders.blood.value = state.blood;
+                    sliders.yellowBile.value = state.yellowBile;
+                    sliders.blackBile.value = state.blackBile;
+                    sliders.phlegm.value = state.phlegm;
+
+                    updateUI();
+                });
+            });
+
+            /* RESET TO EUKRASIA */
+            document.getElementById('btn-reset-eukrasia').addEventListener('click', () => {
+                state.blood = 50;
+                state.yellowBile = 50;
+                state.blackBile = 50;
+                state.phlegm = 50;
+
+                Object.keys(sliders).forEach(k => sliders[k].value = 50);
+                updateUI();
+            });
+
+            /* TAB SWITCHING */
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => {
+                        b.className = 'tab-btn flex-1 py-2.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50';
+                    });
+                    btn.className = 'tab-btn active flex-1 py-2.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 text-amber-200 bg-amber-950/60 border border-amber-800/40';
+
+                    const tabTarget = btn.dataset.tab;
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                    document.getElementById(tabTarget).classList.remove('hidden');
+                });
+            });
+
+            /* MODAL LOGIC */
+            const modal = document.getElementById('modal-patient-cases');
+            document.getElementById('btn-case-modal').addEventListener('click', () => modal.classList.remove('hidden'));
+            document.getElementById('btn-close-modal').addEventListener('click', () => modal.classList.add('hidden'));
+
+            document.querySelectorAll('.btn-load-case').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.blood = parseInt(btn.dataset.blood, 10);
+                    state.yellowBile = parseInt(btn.dataset.yellow, 10);
+                    state.blackBile = parseInt(btn.dataset.black, 10);
+                    state.phlegm = parseInt(btn.dataset.phlegm, 10);
+
+                    sliders.blood.value = state.blood;
+                    sliders.yellowBile.value = state.yellowBile;
+                    sliders.blackBile.value = state.blackBile;
+                    sliders.phlegm.value = state.phlegm;
+
+                    updateUI();
+                    modal.classList.add('hidden');
+                });
+            });
+
+            // INITIAL RENDER
+            updateUI();
+        });
+    </script>
+</body>
+</html>
